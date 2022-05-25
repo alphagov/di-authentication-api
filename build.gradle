@@ -97,7 +97,8 @@ subprojects {
     }
 
     dependencies {
-        bouncycastle "org.bouncycastle:bcpkix-jdk15on:1.70"
+        bouncycastle "org.bouncycastle:bcpkix-jdk15on:1.70",
+                "software.amazon.cryptools:AmazonCorrettoCryptoProvider:1.+:linux-x86_64"
 
         cloudwatch "software.amazon.awssdk:cloudwatch:${dependencyVersions.aws_sdk_v2_version}"
 

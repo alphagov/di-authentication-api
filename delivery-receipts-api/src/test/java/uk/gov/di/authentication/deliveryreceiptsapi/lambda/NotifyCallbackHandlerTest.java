@@ -77,7 +77,7 @@ class NotifyCallbackHandlerTest {
     void shouldCallCloudwatchMetricServiceWhenSmsReceiptIsReceived(
             String number, String expectedCountryCode, String status, String counterName)
             throws Json.JsonException {
-        var deliveryReceipt = createDeliveryReceipt(number, status, "sms");
+        var deliveryReceipt = createDeliveryReceipt(number, status, "sms", IdGenerator.generate());
         var event = new APIGatewayProxyRequestEvent();
         event.setHeaders(Map.of("Authorization", "Bearer " + BEARER_TOKEN));
         event.setBody(objectMapper.writeValueAsString(deliveryReceipt));
@@ -98,8 +98,9 @@ class NotifyCallbackHandlerTest {
     }
 
     @Test
-    void shouldNotCallCloudwatchMetricWithEmailNotificationType() throws Json.JsonException {
-        var deliveryReceipt = createDeliveryReceipt("jim@test.com", "delivered", "email");
+    void shouldCallCloudwatchMetricWithEmailNotificationType() throws Json.JsonException {
+        var deliveryReceipt =
+                createDeliveryReceipt("jim@test.com", "delivered", "email", IdGenerator.generate());
         var event = new APIGatewayProxyRequestEvent();
         event.setHeaders(Map.of("Authorization", "Bearer " + BEARER_TOKEN));
         event.setBody(objectMapper.writeValueAsString(deliveryReceipt));
@@ -154,7 +155,7 @@ class NotifyCallbackHandlerTest {
     }
 
     private NotifyDeliveryReceipt createDeliveryReceipt(
-            String destination, String status, String notificationType) {
+            String destination, String status, String notificationType, String templateID) {
         return new NotifyDeliveryReceipt(
                 IdGenerator.generate(),
                 null,
@@ -164,7 +165,7 @@ class NotifyCallbackHandlerTest {
                 new Date().toString(),
                 new Date().toString(),
                 notificationType,
-                IdGenerator.generate(),
+                templateID,
                 1);
     }
 }

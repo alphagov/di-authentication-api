@@ -8,6 +8,7 @@ import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import uk.gov.di.authentication.deliveryreceiptsapi.entity.EmailNotificationType;
 import uk.gov.di.authentication.deliveryreceiptsapi.entity.NotifyDeliveryReceipt;
 import uk.gov.di.authentication.shared.serialization.Json;
 import uk.gov.di.authentication.shared.serialization.Json.JsonException;
@@ -66,8 +67,9 @@ public class NotifyCallbackHandler
         try {
             deliveryReceipt = objectMapper.readValue(input.getBody(), NotifyDeliveryReceipt.class);
             if (deliveryReceipt.getNotificationType().equals("sms")) {
+                LOG.info("Sms delivery receipt received");
                 var countryCode = getCountryCodeFromNumber(deliveryReceipt.getTo());
-                var deliveryStatus = getDeliveryStatus(deliveryReceipt.getStatus());
+                var deliveryStatus = getSMSDeliveryStatus(deliveryReceipt.getStatus());
                 LOG.info(
                         "SmsDeliveryStatus: {}, NotifyStatus: {}, CountryCode: {}",
                         deliveryStatus,
@@ -83,6 +85,22 @@ public class NotifyCallbackHandler
                                 "NotifyStatus",
                                 deliveryReceipt.getStatus()));
                 LOG.info("SMS callback request processed");
+            } else if (deliveryReceipt.getNotificationType().equals("email")) {
+                LOG.info("Email delivery receipt received");
+                var templateId = deliveryReceipt.getTemplateId();
+                String templateName = EmailNotificationType.findByTemplateId(templateId);
+                if (Objects.isNull(templateName)) {
+                    LOG.error("No template name found with given template ID: {}", templateId);
+                } else {
+                    cloudwatchMetricsService.incrementCounter(
+                            templateName,
+                            Map.of(
+                                    "Environment",
+                                    configurationService.getEnvironment(),
+                                    "NotifyStatus",
+                                    deliveryReceipt.getStatus()));
+                    LOG.info("Email callback request processed");
+                }
             }
         } catch (JsonException e) {
             LOG.error("Unable to parse Notify Delivery Receipt");
@@ -115,7 +133,7 @@ public class NotifyCallbackHandler
         }
     }
 
-    private String getDeliveryStatus(String notifyStatus) {
+    private String getSMSDeliveryStatus(String notifyStatus) {
         var deliveryStatus = SMS_FAILURE.toString();
         if ("delivered".equals(notifyStatus)) {
             deliveryStatus = SMS_DELIVERED.toString();
